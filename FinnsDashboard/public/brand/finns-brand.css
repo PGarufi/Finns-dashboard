@@ -1,0 +1,191 @@
+/* =====================================================================
+   Finn Roache Lawyers — brand layer for Finns Dashboard
+   Mirrors finns.com.au: deep navy, bright cyan, mint call-to-action,
+   Figtree type, the "fr" monogram and outlined rounded buttons.
+   Loaded after each app's own stylesheet; overrides tokens only where
+   the brand differs, so layouts and behaviour are unchanged.
+   ===================================================================== */
+
+@font-face{font-family:'Figtree';font-style:normal;font-weight:300 900;font-display:swap;
+  src:url('figtree-latin-ext.woff2') format('woff2');
+  unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Figtree';font-style:normal;font-weight:300 900;font-display:swap;
+  src:url('figtree-latin.woff2') format('woff2');
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+
+/* ---------- brand palette (finns.com.au) ---------- */
+:root{
+  --finn-navy:#00224A;      /* headings, top strip, footer */
+  --finn-navy-2:#2C61A0;    /* secondary blue */
+  --finn-cyan:#4FCAEE;      /* monogram, panels */
+  --finn-cyan-deep:#00A9DB; /* sub-headings, accents */
+  --finn-cyan-ink:#00739A;  /* cyan that passes contrast on white */
+  --finn-mint:#4FEE8C;      /* "Book a free call" CTA */
+  --finn-gold:#F7B91A;
+  --finn-mist:#F7FCFF;
+  --finn-line:#ADB6BE;
+}
+
+/* ---------- Portal + Aged Debtors tokens ---------- */
+:root,[data-theme="light"]{
+  --color-bg:#F3F7FB; --color-surface:#FFFFFF; --color-surface-2:#F7FAFD; --color-surface-offset:#EAF1F7;
+  --color-border:#D3DEE8; --color-divider:#E4EBF2;
+  --color-text:#0E1C30; --color-text-muted:#4B5B70; --color-text-faint:#8A97A8;
+  --color-primary:#00224A; --color-primary-hover:#2C61A0; --color-primary-soft:#E2F4FB;
+  --color-accent:#00A9DB; --color-heading:#00224A;
+  --color-danger:#B42D3E; --color-danger-soft:#FBE6E9; --color-warn:#9A6400; --color-warn-soft:#FEF2D3; --color-good:#18794E;
+  --shadow-sm:0 1px 2px rgba(0,34,74,.06); --shadow-md:0 8px 22px rgba(0,34,74,.10); --shadow-lg:0 24px 56px rgba(0,34,74,.24);
+  --radius-sm:.375rem; --radius-md:.625rem; --radius-lg:.875rem;
+  --font-body:'Figtree','Helvetica Neue',system-ui,sans-serif;
+  --font-display:'Figtree','Helvetica Neue',system-ui,sans-serif;
+}
+[data-theme="dark"]{
+  --color-bg:#00142C; --color-surface:#001C3B; --color-surface-2:#012247; --color-surface-offset:#032A55;
+  --color-border:#173D68; --color-divider:#0F3157;
+  --color-text:#DCE8F4; --color-text-muted:#93A9C2; --color-text-faint:#5F7795;
+  --color-primary:#4FCAEE; --color-primary-hover:#8BDDF5; --color-primary-soft:#0A3559;
+  --color-accent:#4FCAEE; --color-heading:#FFFFFF;
+  --color-danger:#F08A98; --color-danger-soft:#3A1B2A; --color-warn:#F7B91A; --color-warn-soft:#33290E; --color-good:#4FEE8C;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.35); --shadow-md:0 8px 24px rgba(0,0,0,.45); --shadow-lg:0 24px 56px rgba(0,0,0,.6);
+}
+[data-theme="dark"] .btn-primary{color:#00224A}
+
+/* ---------- Staff Performance tokens ---------- */
+:root{
+  --bg:#F3F7FB; --surface:#FFFFFF; --surface2:#F5F9FC; --border:#D3DEE8;
+  --text:#0E1C30; --muted:#4B5B70; --faint:#A5B2C1;
+  --primary:#00224A; --primary-hover:#2C61A0;
+  --green:#18794E; --amber:#9A6400; --red:#B42D3E;
+  --green-bg:#DDF7E8; --amber-bg:#FEF2D3; --red-bg:#FBE6E9;
+  --font:'Figtree','Segoe UI',system-ui,-apple-system,sans-serif;
+}
+
+/* ---------- typography ---------- */
+body{font-family:var(--font-body,var(--font));font-feature-settings:"tnum" 0}
+h1,h2,h3,h4{font-family:var(--font-display,var(--font));color:var(--color-heading,var(--finn-navy));letter-spacing:-.012em}
+.num,td,.value{font-variant-numeric:tabular-nums lining-nums}
+.eyebrow{color:var(--finn-cyan-ink);letter-spacing:.14em;font-weight:600}
+[data-theme="dark"] .eyebrow{color:var(--finn-cyan)}
+a{color:var(--color-primary-hover,var(--primary-hover))}
+[data-theme="dark"] a{color:var(--finn-cyan)}
+
+/* ---------- navy strip above the header (as on finns.com.au) ---------- */
+.finn-strip{background:var(--finn-navy);color:#fff;font-size:.78rem;letter-spacing:.02em;
+  display:flex;align-items:center;justify-content:center;gap:.6rem;min-height:34px;padding:.35rem 1rem;text-align:center}
+.finn-strip b{font-weight:600}
+.finn-strip .dot{width:4px;height:4px;border-radius:50%;background:var(--finn-cyan);flex:none}
+.finn-strip a{color:var(--finn-cyan);text-decoration:none}
+.finn-strip a:hover{text-decoration:underline}
+[data-theme="dark"] .finn-strip{background:#000D1E;border-bottom:1px solid var(--color-divider)}
+
+/* ---------- header ---------- */
+.topbar{background:var(--color-surface,var(--surface));border-bottom:1px solid var(--color-border,var(--border));
+  box-shadow:inset 0 -3px 0 -1px transparent}
+.topbar::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;
+  background:linear-gradient(90deg,var(--finn-cyan) 0,var(--finn-cyan) 120px,transparent 120px)}
+.topbar .brand{gap:.85rem}
+.finn-mark{display:block;height:38px;width:auto;flex:none}
+.brand .brand-text,.brand>div{padding-left:.85rem;border-left:1px solid var(--color-border,var(--border))}
+.brand .eyebrow,.brand .eyebrow-sm{font-size:.68rem;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--finn-navy)}
+[data-theme="dark"] .brand .eyebrow{color:#fff}
+.brand-name,.topbar h1{font-weight:700;color:var(--color-heading,var(--finn-navy))}
+.brand:hover .brand-name{color:var(--finn-navy-2)}
+[data-theme="dark"] .brand:hover .brand-name{color:var(--finn-cyan)}
+
+/* ---------- buttons: outlined pill like "Pay Invoice", navy solid primary ---------- */
+.btn{border-radius:999px;font-weight:500}
+.btn-ghost{border-color:var(--color-primary);color:var(--color-primary);background:transparent}
+.btn-ghost:hover{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+[data-theme="dark"] .btn-ghost:hover{color:#00224A}
+.btn-icon{border-radius:999px;border-color:var(--color-border)}
+.btn-primary{background:var(--finn-navy);border-color:var(--finn-navy)}
+.btn-primary:hover{background:var(--finn-navy-2)}
+[data-theme="dark"] .btn-primary{background:var(--finn-cyan);border-color:var(--finn-cyan)}
+[data-theme="dark"] .btn-primary:hover{background:var(--color-primary-hover)}
+.btn-cta,.gate-btn{background:var(--finn-mint)!important;color:var(--finn-navy)!important;border-color:var(--finn-mint)!important;font-weight:600}
+.btn-cta:hover,.gate-btn:hover{background:#3AD97A!important;border-color:#3AD97A!important}
+.role-chip{border-radius:999px}
+/* staff app buttons */
+.btn.ghost{border-color:var(--primary);color:var(--primary);background:transparent}
+.btn.ghost:hover{background:var(--primary);color:#fff}
+.tab{border-radius:999px}
+.tab.active{background:var(--finn-navy);border-color:var(--finn-navy)}
+.mark{background:var(--finn-navy)}
+
+/* ---------- fields ---------- */
+.field input,.field select,input,select{border-radius:.5rem}
+.field input:focus,.field select:focus{outline:2px solid color-mix(in srgb,var(--finn-cyan) 70%,transparent);border-color:var(--finn-cyan-deep)}
+
+/* ---------- cards / tiles ---------- */
+.card,.tile,.app-tile,.panel{border-color:var(--color-border,var(--border))}
+.tile .label{color:var(--color-text-muted);letter-spacing:.08em}
+.tile .value{color:var(--color-heading)}
+.tile.accent .value{color:var(--color-danger)}
+.params{border-color:var(--color-border)!important;border-left:5px solid var(--finn-cyan)!important}
+.params h2{color:var(--color-heading)}
+
+/* ---------- sign in (cyan panel with wave, as on the "Since 1921" panel) ---------- */
+.gate{background-color:var(--finn-cyan);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 900' preserveAspectRatio='none'%3E%3Cpath d='M980 0C860 180 820 360 900 520c90 180 300 300 540 380V0z' fill='%2300A9DB' fill-opacity='.38'/%3E%3Cpath d='M0 900V640c180-40 360-20 520 60 120 60 220 140 300 200z' fill='%2300224A' fill-opacity='.08'/%3E%3C/svg%3E");
+  background-size:100% 100%;background-repeat:no-repeat}
+[data-theme="dark"] .gate{background-color:var(--finn-navy)}
+.gate-card{border:0;border-radius:var(--radius-lg);box-shadow:0 30px 70px rgba(0,34,74,.28);padding:2.25rem 2.25rem 1.75rem}
+.gate-logo{display:block;height:92px;width:auto;margin:0 auto .25rem}
+.gate-logo.on-dark{display:none}
+[data-theme="dark"] .gate-logo.on-light{display:none}
+[data-theme="dark"] .gate-logo.on-dark{display:block}
+.gate-card .eyebrow{text-align:center}
+.gate-card h1{text-align:center;color:var(--color-heading)}
+.gate-sub{text-align:center}
+.gate-btn{border-radius:999px;padding:.75rem}
+.gate-foot{text-align:center}
+
+/* ---------- home banner (navy panel with cyan wave) ---------- */
+.portal .hello{position:relative;overflow:hidden;isolation:isolate;margin-top:var(--space-6,1.5rem);
+  padding:2.25rem 2.25rem 2.1rem;border-radius:var(--radius-lg);background:var(--finn-navy);color:#fff}
+.portal .hello::before{content:"";position:absolute;inset:0 0 0 auto;width:min(46%,520px);z-index:-1;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 500 220' preserveAspectRatio='none'%3E%3Cpath d='M180 0C120 70 120 150 200 220H500V0z' fill='%234FCAEE'/%3E%3Cpath d='M300 0c-40 80-20 160 60 220H500V0z' fill='%2300A9DB' fill-opacity='.55'/%3E%3C/svg%3E") right/100% 100% no-repeat}
+.portal .hello::after{content:"";position:absolute;right:clamp(1.5rem,6vw,5rem);top:50%;width:120px;height:70px;transform:translateY(-50%);z-index:-1;
+  background:url("signature.png") center/contain no-repeat;opacity:.9}
+.portal .hello h1{color:#fff;font-weight:700;font-size:clamp(1.6rem,1.2rem + 1.4vw,2.25rem);max-width:58%}
+.portal .hello .sub{color:var(--finn-cyan);font-weight:500;max-width:58%}
+.portal .hello .finn-kicker{display:block;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.7);margin-bottom:.6rem;font-weight:500}
+[data-theme="dark"] .portal .hello{background:#001F42;border:1px solid var(--color-border)}
+@media (max-width:720px){
+  .portal .hello::before{width:38%;opacity:.55}
+  .portal .hello::after{display:none}
+  .portal .hello h1,.portal .hello .sub{max-width:100%}
+}
+.app-tile:hover{border-color:var(--finn-cyan-deep)}
+.app-tile .app-icon,.app-tile .tile-icon{background:var(--color-primary-soft);color:var(--finn-navy)}
+[data-theme="dark"] .app-tile .app-icon,[data-theme="dark"] .app-tile .tile-icon{color:var(--finn-cyan)}
+.app-open{color:var(--finn-navy-2)}
+[data-theme="dark"] .app-open{color:var(--finn-cyan)}
+
+/* ---------- footer ---------- */
+.finn-foot{margin-top:3rem;background:var(--finn-navy);color:rgba(255,255,255,.72);font-size:.78rem}
+.finn-foot .inner{max-width:1440px;margin:0 auto;padding:1.25rem 1.5rem;display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;justify-content:space-between}
+.finn-foot img{height:44px;width:auto}
+.finn-foot b{color:var(--finn-cyan);font-weight:600}
+[data-theme="dark"] .finn-foot{background:#000D1E;border-top:1px solid var(--color-divider)}
+
+/* ---------- staff app residual warm tints → brand cool tints ---------- */
+tr.grp td{background:#EAF2F9!important}
+.track{background:#E4ECF4!important}
+.drop.over{background:#E2F4FB!important}
+.method p,.method li{color:#2B3B50!important}
+.warn{background:#FEF2D3!important;color:#7A4F00!important}
+.segbtn.on{background:var(--finn-navy)}
+footer.finn-foot{padding:0;max-width:none;margin:3rem 0 0;color:rgba(255,255,255,.72);font-size:.78rem}
+.gate-card .eyebrow{display:none}
+.app-stat .warn{background:none!important;color:var(--color-danger)!important}
+#shell:not([hidden]){display:flex;flex-direction:column;min-height:100dvh}
+#shell>main{flex:1 0 auto;width:100%}
+.finn-foot .inner{justify-content:flex-start}
+.btn{white-space:nowrap}
+@media (max-width:640px){
+  .finn-strip .dot,.finn-strip span:last-child{display:none}
+  .portal .hello::before{display:none}
+  .portal .hello{padding:1.6rem 1.4rem}
+  .finn-foot .inner{flex-direction:column;align-items:flex-start;gap:.6rem}
+}

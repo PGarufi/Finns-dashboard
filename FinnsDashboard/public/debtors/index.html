@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en-AU" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aged Debtors — Finns Dashboard</title>
+<meta name="description" content="Server-held aged debtors analysis for Finn Roache Lawyers: ageing, client groups, matter statements and week-by-week movement.">
+<link rel="icon" type="image/png" href="../brand/favicon-32.png">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<link rel="stylesheet" href="styles.css?v=1791692698">
+<link rel="stylesheet" href="../brand/finns-brand.css?v=1791760000">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="logo" viewBox="0 0 32 32"><rect x="0.9" y="0.9" width="30.2" height="30.2" rx="7" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 23V12M14 23v-5M20 23v-8.5M26 23V7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/></symbol>
+</svg>
+
+<div id="shell" hidden>
+<div class="finn-strip"><b>Finn Roache Lawyers</b><span class="dot"></span><span>Internal management reporting &middot; Confidential</span></div>
+<header class="topbar">
+  <a class="brand" href="../index.html" title="Back to Finns Dashboard">
+    <img class="finn-mark" src="../brand/monogram.png" alt="Finn Roache Lawyers" width="58" height="38">
+    <div class="brand-text">
+      <span class="eyebrow">Finns Dashboard</span>
+      <span class="brand-name">Aged Debtors</span>
+    </div>
+  </a>
+  <p class="stamp" id="subtitle">Loading…</p>
+  <div class="topbar-actions">
+    <label class="btn btn-primary role-editor" for="fileInput" tabindex="0">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 17V3M7 8l5-5 5 5M4 17v3h16v-3"/></svg>
+      Upload ledgers</label>
+    <input id="fileInput" type="file" accept=".xlsx" multiple hidden>
+    <button class="btn btn-ghost" id="sourcesOpen" type="button">Data sources</button>
+    <button class="btn btn-icon" id="themeBtn" type="button" aria-label="Switch to dark mode">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    <div class="account">
+      <button class="btn btn-ghost" id="accountBtn" type="button" aria-haspopup="true" aria-expanded="false"><span id="accountName">—</span> <span class="role-chip" id="accountRole"></span></button>
+      <div class="menu" id="accountMenu" hidden>
+        <a href="../index.html">All dashboards</a>
+        <button type="button" id="signOut">Sign out</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="notice" id="notice" role="status" hidden></div>
+
+  <section class="params" aria-labelledby="paramsTitle">
+    <div class="params-head">
+      <h2 id="paramsTitle">Reporting parameters</h2>
+      <p>Every report on this page follows these settings.</p>
+    </div>
+    <div class="params-grid">
+      <label class="field"><span>Reporting period</span><select id="periodFilter"></select></label>
+      <label class="field"><span>Client group</span><select id="debtorGroupFilter">
+        <option value="">All clients</option>
+        <option value="major">01 - Major Clients</option>
+        <option value="all90">02 - All Over 90 Days</option>
+        <option value="mixed90">03 - Over 90 days</option>
+        <option value="under14">04 - Below 14 Days</option>
+        <option value="under60">05 - 14-60 Days</option>
+        <option value="under90">06 - 60-90 Days</option>
+        <option value="other">07 - Other Clients</option>
+      </select></label>
+      <label class="field"><span>Staff</span><select id="staffFilter"></select></label>
+      <label class="field"><span>Matter type</span><select id="matterTypeFilter"></select></label>
+      <label class="field"><span>Ageing bucket</span><select id="ageFilter"></select></label>
+      <label class="field field-search"><span>Search</span><input id="search" type="search" placeholder="Client, matter, invoice or description"></label>
+      <button class="btn btn-ghost params-clear" id="clearFilters" type="button">Clear filters</button>
+    </div>
+    <details class="group-rules"><summary>How client groups are assigned</summary>
+      <p>Groups are mutually exclusive and assigned from the full selected-period ledger before the other filters, in this order: <b>01</b> net debt (invoices less credits) over $200,000 · <b>02</b> every invoice over 90 days · <b>03</b> a mix of invoices over and within 90 days · <b>04</b> every invoice under 14 days · <b>05</b> every invoice under 60 days · <b>06</b> every invoice 90 days or less · <b>07</b> everything else (credit-only or undated). The movement analysis applies the selected period's group membership to earlier periods.</p>
+    </details>
+  </section>
+
+  <section class="tiles" id="tiles" aria-label="Key figures"></section>
+
+  <section class="grid-2">
+    <article class="card">
+      <header class="card-head"><div><h3>Ageing profile</h3><p class="sub">Gross invoices by age · percentage of gross above each bar</p></div></header>
+      <div class="chart-box"><canvas id="ageChart" aria-label="Ageing profile chart"></canvas></div>
+    </article>
+    <article class="card">
+      <header class="card-head"><div><h3>Portfolio concentration</h3><p class="sub">Top 10 clients · share of the positive net total</p></div></header>
+      <div class="chart-box"><canvas id="concChart" aria-label="Top 10 client concentration chart"></canvas></div>
+    </article>
+  </section>
+
+  <section class="card" id="clientsCard">
+    <header class="card-head">
+      <div><h3>Client drill-down</h3><p class="sub" id="clientCount"></p></div>
+      <div class="card-actions">
+        <button class="btn btn-ghost" id="directoryOpen" type="button">Client details directory</button>
+        <button class="btn btn-ghost" id="unresolvedOpen" type="button">Unresolved identities</button>
+        <button class="btn btn-ghost" id="exportClients" type="button">Export CSV</button>
+      </div>
+    </header>
+    <div class="table-wrap tall">
+      <table class="data" id="clientTable">
+        <thead><tr>
+          <th data-sort="rank" class="num">Rank</th>
+          <th data-sort="client" class="client-col">Client Name<span class="col-resize" id="clientNameResize" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize Client Name column"></span></th>
+          <th data-sort="gross" class="num">Excl. credit</th>
+          <th data-sort="credits" class="num">Credits</th>
+          <th data-sort="net" class="num">Incl. credits</th>
+          <th data-sort="pctTotal" class="num">% of Total</th>
+          <th data-sort="cumulativePct" class="num">Cumulative %</th>
+          <th data-sort="under60" class="num">&lt;60 days</th>
+          <th data-sort="days60to90" class="num">60–90 days</th>
+          <th data-sort="over90" class="num">Over 90 days</th>
+          <th data-sort="matters" class="num">Matters</th>
+          <th data-sort="invoices" class="num">Invoices</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card hidden" id="detailSection">
+    <header class="card-head">
+      <div><p class="eyebrow">Client detail</p><h3 id="detailTitle"></h3><p class="sub" id="detailSub"></p></div>
+      <div class="card-actions">
+        <div class="seg" role="group" aria-label="Detail view">
+          <button type="button" id="matterViewBtn" class="active" aria-pressed="true">Matters summary</button>
+          <button type="button" id="invoiceViewBtn" aria-pressed="false">Outstanding invoices</button>
+        </div>
+        <button class="btn btn-ghost" id="exportBtn" type="button">Export CSV</button>
+        <button class="btn btn-ghost" id="backBtn" type="button">Back to list</button>
+      </div>
+    </header>
+    <div class="tiles small" id="detailTiles"></div>
+    <p class="hint" id="detailHint">Select a matter to open its statement of account.</p>
+    <div class="table-wrap" id="matterWrap">
+      <table class="data" id="matterTable">
+        <thead><tr><th>Matter</th><th>Description</th><th>Staff</th><th class="num">Gross</th><th class="num">Credits</th><th class="num">Net</th><th class="num">&lt;60 days</th><th class="num">60–90 days</th><th class="num">Over 90 days</th><th class="num">Invoices</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="table-wrap hidden" id="invoiceWrap">
+      <table class="data" id="invoiceTable">
+        <thead><tr><th>Staff</th><th>Matter</th><th>Description</th><th>Date</th><th>Invoice</th><th>Ageing</th><th class="num">Gross</th><th class="num">Credit</th><th class="num">Net</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card movement" id="movementCard">
+    <header class="card-head">
+      <div><h3 id="movementSectionTitle">Movement in and out of 90+ days</h3>
+        <p class="sub">Invoices are matched by matter and invoice number between periods. Credits are excluded. Paid / cleared amounts (*) are inferred from balances that fell or disappeared.</p></div>
+    </header>
+    <div class="params-grid compact">
+      <label class="field"><span>Ageing scope</span><select id="movementScope">
+        <option value="total">Total invoice AR ledger</option>
+        <option value="under60">&lt;60 days</option>
+        <option value="60to90">60–90 days</option>
+        <option value="over90" selected>90+ days</option></select></label>
+      <label class="field"><span>From period</span><select id="movementFrom"></select></label>
+      <label class="field"><span>To period</span><select id="movementTo"></select></label>
+      <label class="field"><span>Detail category</span><select id="movementCategory"></select></label>
+    </div>
+    <div class="tiles movement-tiles" id="movementTiles"></div>
+    <p class="reconcile" id="movementReconcile"></p>
+    <div class="chart-head"><h4 id="movementChartTitle">90+ days movement trend</h4><p class="sub" id="movementChartSubtitle"></p></div>
+    <div class="chart-box tall"><canvas id="movementChart" aria-label="Movement trend chart"></canvas></div>
+    <h4 class="table-title">Invoice movements for the selected periods</h4>
+    <div class="table-wrap">
+      <table class="data" id="movementDetail">
+        <thead><tr><th>Movement</th><th>Client</th><th>Matter</th><th>Invoice</th><th class="num">Earlier</th><th class="num">Later</th><th class="num">Change</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <h4 class="table-title">Period-to-period base data <span class="sub">· select a row to analyse that week</span></h4>
+    <div class="table-wrap">
+      <table class="data clickable" id="movementBase">
+        <thead><tr><th>From</th><th>To</th><th class="num" id="mbOpen">Opening</th><th class="num" id="mbInto">Aged into</th><th class="num">Out / cleared*</th><th class="num">Part paid*</th><th class="num">Paid total*</th><th class="num">Aged out</th><th class="num">Other exit</th><th class="num">Other movement</th><th class="num">Net</th><th class="num">Closing</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <header class="card-head">
+      <div><h3>Responsible Staff by ageing</h3><p class="sub">Gross invoices by responsible staff member, stacked by age</p></div>
+      <div class="card-actions">
+        <label class="field inline"><span>Age group</span><select id="staffAgeGroup"></select></label>
+        <button class="btn btn-ghost" id="staffAgeReset" type="button">Reset to All</button>
+      </div>
+    </header>
+    <div class="chart-box auto" id="staffBox"><canvas id="staffChart" aria-label="Responsible staff by ageing chart"></canvas></div>
+  </section>
+
+  <section class="card">
+    <header class="card-head">
+      <div><h3>Outstanding debt by matter type</h3><p class="sub">Matters with a positive net balance only</p></div>
+      <div class="card-actions">
+        <label class="field inline"><span>Show</span><select id="matterTypeMetric">
+          <option value="value">$ value by matter type</option>
+          <option value="count">Number of matters by matter type</option></select></label>
+      </div>
+    </header>
+    <div class="chart-box auto" id="matterTypeBox"><canvas id="matterTypeChart" aria-label="Outstanding debt by matter type chart"></canvas></div>
+  </section>
+
+  <footer class="foot">Ledgers, client lists, contact edits and grouping decisions are held on the server and shared by every signed-in user. Source: LEAP Aged Debtors, Matter List and Client Details exports.</footer>
+</main>
+<footer class="finn-foot"><div class="inner"><img src="../brand/logo-lockup-white.png" alt="Finn Roache Lawyers" width="69" height="44"><span><b>Finns Dashboard</b> &nbsp;&middot;&nbsp; Internal management reporting for Finn Roache Lawyers. Confidential &mdash; not for distribution.</span></div></footer>
+</div>
+
+<!-- MATTER STATEMENT -->
+<dialog id="statementDialog" class="dlg wide" aria-labelledby="statementHeading">
+  <div class="dlg-head"><div><p class="eyebrow">Statement of account</p><h3 id="statementHeading"></h3><p class="desc" id="statementDescription"></p><p class="sub" id="statementMeta"></p></div>
+    <button class="btn btn-icon" type="button" data-close aria-label="Close">✕</button></div>
+  <div class="dlg-body">
+    <div class="contact-grid">
+      <label class="field"><span>Contact name</span><input id="statementContact" type="text"></label>
+      <label class="field"><span>Client email</span><input id="statementEmail" type="email"></label>
+      <label class="field"><span>Client Telephone No.</span><input id="statementTelephone" type="text"></label>
+      <button class="btn btn-ghost role-editor" id="statementSaveContact" type="button">Save contact</button>
+    </div>
+    <p class="hint" id="contactSource"></p>
+    <div class="two-tables">
+      <div class="table-wrap"><table class="data"><thead><tr><th>Invoice date</th><th>Invoice No.</th><th class="num">Outstanding balance</th><th>Ageing</th></tr></thead>
+        <tbody id="statementRows"></tbody><tfoot><tr><th colspan="2">Total outstanding invoices</th><th class="num" id="statementTableTotal"></th><th></th></tr></tfoot></table></div>
+      <div class="table-wrap"><table class="data"><thead><tr><th>Ageing</th><th class="num">Amount</th></tr></thead><tbody id="statementAgeRows"></tbody></table></div>
+    </div>
+    <p class="hint" id="statementStatus"></p>
+  </div>
+  <div class="dlg-foot">
+    <button class="btn btn-primary" id="statementPDF" type="button">Download PDF</button>
+    <button class="btn btn-ghost" id="statementOutlook" type="button">Open in Outlook</button>
+    <button class="btn btn-ghost" id="statementEmailDraft" type="button">Download email draft (.eml)</button>
+  </div>
+</dialog>
+
+<!-- CLIENT DIRECTORY -->
+<dialog id="directoryDialog" class="dlg wide" aria-labelledby="directoryTitle">
+  <div class="dlg-head"><div><p class="eyebrow">Client details directory</p><h3 id="directoryTitle">Contacts for collections</h3><p class="sub" id="directoryCount"></p></div>
+    <button class="btn btn-icon" type="button" data-close aria-label="Close">✕</button></div>
+  <div class="dlg-body">
+    <div class="params-grid compact">
+      <label class="field"><span>Show</span><select id="directoryFilter">
+        <option value="outstanding">Outstanding matters</option>
+        <option value="with">Outstanding matters with email</option>
+        <option value="without">Outstanding matters without email</option></select></label>
+      <label class="field field-search"><span>Search</span><input id="directorySearch" type="search" placeholder="Client, short name, contact, email or telephone"></label>
+    </div>
+    <form id="directoryEditForm" class="edit-form hidden">
+      <h4 id="directoryEditHeading"></h4>
+      <div class="contact-grid">
+        <label class="field"><span>Contact name</span><input id="directoryEditName" type="text"></label>
+        <label class="field"><span>Client email</span><input id="directoryEditEmail" type="email"></label>
+        <label class="field"><span>Telephone number</span><input id="directoryEditTelephone" type="text"></label>
+      </div>
+      <p class="hint">Client Name and Short Name come from LEAP and are not editable here. Saved details are shared with every user.</p>
+      <div class="row-actions"><button class="btn btn-primary" type="submit">Save</button><button class="btn btn-ghost" type="button" id="directoryRevert">Revert to Client List</button><button class="btn btn-ghost" type="button" id="directoryEditCancel">Cancel</button></div>
+    </form>
+    <div class="table-wrap tall">
+      <table class="data" id="directoryTable">
+        <thead><tr><th class="client-col">Client Name</th><th>Short Name</th><th>Client Contact</th><th>Client Email</th><th>Telephone Number</th><th class="role-editor">Edit</th></tr></thead>
+        <tbody id="directoryRows"></tbody>
+      </table>
+    </div>
+  </div>
+</dialog>
+
+<!-- GROUPED RECORDS / UNRESOLVED -->
+<dialog id="groupDialog" class="dlg wide" aria-labelledby="groupHeading">
+  <div class="dlg-head"><div><p class="eyebrow">Client identity</p><h3 id="groupHeading"></h3><p class="sub" id="groupNote"></p></div>
+    <button class="btn btn-icon" type="button" data-close aria-label="Close">✕</button></div>
+  <div class="dlg-body"><div class="table-wrap tall" id="groupEntries"></div></div>
+</dialog>
+
+<!-- DATA SOURCES -->
+<dialog id="sourcesDialog" class="dlg wide" aria-labelledby="sourcesTitle">
+  <div class="dlg-head"><div><p class="eyebrow">Held on the server</p><h3 id="sourcesTitle">Data sources</h3><p class="sub">Weekly ledgers are keyed by the "Aged at" date inside each file; uploading a file for an existing date replaces it.</p></div>
+    <button class="btn btn-icon" type="button" data-close aria-label="Close">✕</button></div>
+  <div class="dlg-body">
+    <div class="list-cards" id="listCards"></div>
+    <div class="section-row"><h4>Weekly Aged Debtors ledgers</h4>
+      <label class="btn btn-primary role-editor" for="fileInput2" tabindex="0">Upload ledgers</label>
+      <input id="fileInput2" type="file" accept=".xlsx" multiple hidden></div>
+    <div class="table-wrap tall">
+      <table class="data" id="periodsTable"><thead><tr><th>Aged at</th><th>File</th><th class="num">Lines</th><th>Uploaded</th><th>By</th><th></th></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+</dialog>
+
+<!-- USERS -->
+
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="../shell.js?v=1791760000" data-root="../"></script>
+<script src="../vendor/chart.umd.min.js"></script>
+<script src="../vendor/jspdf.umd.min.js" defer></script>
+<script src="app.js?v=1791760000"></script>
+<script data-pplx-inline-edit>
+(function () {
+  if (window === window.top) return;
+
+  const allowedParentOrigins = ["https://www.perplexity.ai","https://perplexity.ai","https://testing.perplexity.ai","https://staging.perplexity.ai","https://*.preview.i.perplexity.ai","http://perplexity.localhost","http://localhost:1420","http://127.0.0.1:1420","http://localhost:3000","http://127.0.0.1:3000","http://localhost:5173","http://127.0.0.1:5173"];
+  const MAX_FONT_BYTES = 500 * 1024;
+  const MAX_TOTAL_FONT_BYTES = 2 * 1024 * 1024;
+  const DEFAULT_LINE_HEIGHT = 16;
+  let scrollForwarding = false;
+  let scrollRaf = 0;
+  let trustedTopOrigin = null;
+
+  // Allow entries like "https://*.preview.i.perplexity.ai" — the wildcard
+  // matches a single DNS label (no dots), so "https://*.foo" cannot stretch
+  // across multiple labels.
+  function matchesAllowedOrigin(origin) {
+    if (!origin) return false;
+    for (const entry of allowedParentOrigins) {
+      if (!entry.includes("*")) {
+        if (entry === origin) return true;
+        continue;
+      }
+      const pattern = new RegExp(
+        "^" +
+          entry.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^.]+") +
+          "$",
+      );
+      if (pattern.test(origin)) return true;
+    }
+    return false;
+  }
+
+  // Trust decision: when the sender is same-origin-visible (event.origin is a
+  // real origin like https://www.perplexity.ai) we trust event.origin directly.
+  // When event.origin is "null" (opaque broker srcdoc), we fall back to the
+  // broker's stamped `parentOrigin` to identify the top window. The fallback
+  // is claim-only — we rely on the browser's native `targetOrigin` enforcement
+  // on the response path (see postToTrustedTop) to ensure replies can't be
+  // delivered to anyone but the actual top window of that claimed origin.
+  function getTrustedParentOrigin(event) {
+    const forwardedParentOrigin =
+      typeof event.data.parentOrigin === "string" ? event.data.parentOrigin : null;
+    const parentOrigin = event.origin === "null" ? forwardedParentOrigin : event.origin;
+    return matchesAllowedOrigin(parentOrigin) ? parentOrigin : null;
+  }
+
+  // All responses go to window.top with targetOrigin = the allowlisted origin.
+  // An attacker that iframes us inside their own null-origin broker can claim
+  // any parentOrigin they like, but the browser will drop the reply whenever
+  // the real top's origin doesn't match — so the screenshot never leaves.
+  function postToTrustedTop(message) {
+    if (!trustedTopOrigin) return;
+    try {
+      window.top.postMessage(message, trustedTopOrigin);
+    } catch (_error) {}
+  }
+
+  const PICK_CAPABILITIES = ["pick"];
+  const PICK_CHAIN_LENGTH = 4;
+  const PICK_MAX_TEXT_CHARS = 120;
+  const PICK_MAX_HTML_CHARS = 300;
+
+  function truncate(value, maxChars) {
+    return value.length > maxChars ? value.slice(0, maxChars - 1) + "…" : value;
+  }
+
+  function isPickableElement(element) {
+    return (
+      element instanceof Element &&
+      element !== document.documentElement &&
+      element !== document.body
+    );
+  }
+
+  function resolvePickTarget(x, y) {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+    const element = document.elementFromPoint(x, y);
+    return isPickableElement(element) ? element.closest("svg") || element : null;
+  }
+
+  function pickLabel(element) {
+    if (element.id) return element.localName + "#" + element.id;
+    return [element.localName].concat(Array.from(element.classList).slice(0, 2)).join(".");
+  }
+
+  // Only attributes that help find the element in source. data-* values and URL
+  // query strings or fragments can carry tokens.
+  const PICK_ATTRIBUTES = new Set([
+    "id",
+    "class",
+    "name",
+    "type",
+    "role",
+    "alt",
+    "aria-label",
+    "href",
+    "src",
+  ]);
+
+  function pickAttributeValue(attribute) {
+    return attribute.name === "href" || attribute.name === "src"
+      ? attribute.value.split(/[?#]/)[0]
+      : attribute.value;
+  }
+
+  function describePickElement(element) {
+    const chain = [];
+    for (
+      let current = element;
+      isPickableElement(current) && chain.length < PICK_CHAIN_LENGTH;
+      current = current.parentElement
+    ) {
+      chain.unshift(current);
+    }
+    const attributes = Array.from(element.attributes)
+      .filter((attribute) => PICK_ATTRIBUTES.has(attribute.name))
+      .map((attribute) => ` ${attribute.name}="${pickAttributeValue(attribute).replace(/"/g, "&quot;")}"`)
+      .join("");
+    const text = (element.innerText || element.textContent || "").replace(/\s+/g, " ").trim();
+    return {
+      chain: chain.map(pickLabel),
+      html: truncate(`<${element.localName}${attributes}>`, PICK_MAX_HTML_CHARS),
+      text: text ? truncate(text, PICK_MAX_TEXT_CHARS) : undefined,
+    };
+  }
+
+  // Hover asks once per frame, and innerText on a large section forces layout,
+  // so only the rect is re-read while the pointer stays on the same element.
+  // Clicks ask for fresh details since the page may have changed the element.
+  let lastPick = null;
+
+  function describePickTarget(element, fresh) {
+    if (fresh || lastPick?.element !== element) {
+      lastPick = { element, details: describePickElement(element) };
+    }
+    const rect = element.getBoundingClientRect();
+    return {
+      rect: { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
+      ...lastPick.details,
+    };
+  }
+
+  function inlineAll(original, clone) {
+    if (original.nodeType !== 1 || clone.nodeType !== 1) return;
+
+    try {
+      const computedStyle = getComputedStyle(original);
+      // cssText on a computed style is the serialized declaration in modern
+      // Chromium/Safari — a single read beats enumerating ~400 longhand
+      // properties. Firefox returns "" here, so we fall back on empty.
+      const serialized = computedStyle.cssText;
+      if (serialized) {
+        clone.style.cssText = serialized;
+      } else {
+        const parts = new Array(computedStyle.length);
+        for (let index = 0; index < computedStyle.length; index += 1) {
+          const property = computedStyle[index];
+          parts[index] = `${property}:${computedStyle.getPropertyValue(property)};`;
+        }
+        clone.style.cssText = parts.join("");
+      }
+    } catch (_error) {}
+
+    const originalChildren = original.children;
+    const clonedChildren = clone.children;
+    for (
+      let index = 0;
+      index < originalChildren.length && index < clonedChildren.length;
+      index += 1
+    ) {
+      inlineAll(originalChildren[index], clonedChildren[index]);
+    }
+  }
+
+  function extractFontUrl(srcValue) {
+    const matches = [
+      ...srcValue.matchAll(
+        /url\(["']?([^"')]+)["']?\)(?:\s*format\(["']?([^"')]+)["']?\))?/gi,
+      ),
+    ];
+    if (matches.length === 0) return null;
+    const woff2 = matches.find((m) => m[2] && m[2].toLowerCase().includes("woff2"));
+    if (woff2) return woff2[1];
+    const woff = matches.find((m) => m[2] && m[2].toLowerCase().includes("woff"));
+    if (woff) return woff[1];
+    return matches[0][1];
+  }
+
+  // Cache resolved font URL -> data URI across captures. Fonts on a page
+  // essentially never change, and a batch run emits multiple captures back to
+  // back — without this we'd refetch + re-base64 every time.
+  const fontDataUriCache = new Map();
+  const SRC_DECLARATION_RE = /src\s*:\s*[^;}]+/i;
+
+  async function fetchAsDataUri(url) {
+    if (fontDataUriCache.has(url)) return fontDataUriCache.get(url);
+    let dataUri = null;
+    try {
+      const response = await fetch(url, { mode: "cors", credentials: "omit" });
+      if (response.ok) {
+        const blob = await response.blob();
+        if (blob.size <= MAX_FONT_BYTES) {
+          dataUri = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () =>
+              resolve(typeof reader.result === "string" ? reader.result : null);
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(blob);
+          });
+        }
+      }
+    } catch (_error) {
+      dataUri = null;
+    }
+    fontDataUriCache.set(url, dataUri);
+    return dataUri;
+  }
+
+  function collectFontFaceRuleTexts() {
+    const rules = [];
+    for (const sheet of document.styleSheets) {
+      let cssRules;
+      try {
+        cssRules = sheet.cssRules;
+      } catch (_error) {
+        continue;
+      }
+      if (!cssRules) continue;
+      for (const rule of cssRules) {
+        const cssText = rule.cssText || "";
+        if (cssText.startsWith("@font-face")) rules.push(cssText);
+      }
+    }
+    return rules;
+  }
+
+  async function buildInlinedFontCss() {
+    const ruleTexts = collectFontFaceRuleTexts();
+    if (ruleTexts.length === 0) return null;
+
+    const resolved = ruleTexts.map((cssText) => {
+      if (!SRC_DECLARATION_RE.test(cssText)) return null;
+      const srcMatch = cssText.match(/src\s*:\s*([^;}]+)[;}]/i);
+      if (!srcMatch) return null;
+      const url = extractFontUrl(srcMatch[1]);
+      if (!url) return null;
+      try {
+        return { cssText, url: new URL(url, document.baseURI).href };
+      } catch (_error) {
+        return null;
+      }
+    });
+
+    const dataUris = await Promise.all(
+      resolved.map((entry) => (entry ? fetchAsDataUri(entry.url) : Promise.resolve(null))),
+    );
+
+    const inlined = [];
+    let totalBytes = 0;
+    for (let index = 0; index < resolved.length; index += 1) {
+      const entry = resolved[index];
+      const dataUri = dataUris[index];
+      if (!entry || !dataUri) continue;
+      const approxBytes = dataUri.length * 0.75;
+      if (totalBytes + approxBytes > MAX_TOTAL_FONT_BYTES) break;
+      totalBytes += approxBytes;
+      inlined.push(entry.cssText.replace(SRC_DECLARATION_RE, `src: url("${dataUri}")`));
+    }
+    return inlined.length > 0 ? inlined.join("\n") : null;
+  }
+
+  function stripExternal(clone) {
+    const images = clone.querySelectorAll("img");
+    for (let index = 0; index < images.length; index += 1) {
+      const src = images[index].getAttribute("src");
+      if (src && !src.startsWith("data:")) images[index].removeAttribute("src");
+    }
+
+    const elements = clone.querySelectorAll("*");
+    for (let index = 0; index < elements.length; index += 1) {
+      const style = elements[index].style.cssText;
+      if (style && style.includes("url(")) {
+        elements[index].style.cssText = style.replace(
+          /url\(["']?(?!data:)[^)"']*["']?\)/gi,
+          "none",
+        );
+      }
+    }
+  }
+
+  function emitScroll() {
+    scrollRaf = 0;
+    if (!scrollForwarding) return;
+    postToTrustedTop({
+      type: "INLINE_EDIT_SCROLL",
+      scrollX: window.scrollX,
+      scrollY: window.scrollY,
+      capabilities: PICK_CAPABILITIES,
+    });
+  }
+
+  window.addEventListener(
+    "scroll",
+    function () {
+      if (!scrollForwarding || scrollRaf) return;
+      scrollRaf = requestAnimationFrame(emitScroll);
+    },
+    { passive: true, capture: true },
+  );
+
+  async function handleCaptureRequest(event) {
+    const requestId = event.data.requestId;
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    function postResult(dataUrl) {
+      postToTrustedTop({
+        type: "INLINE_EDIT_SCREENSHOT_RESULT",
+        requestId,
+        dataUrl,
+        scrollX,
+        scrollY,
+      });
+    }
+
+    try {
+      // Wait for any pending web fonts to resolve so both inline metrics and
+      // the @font-face inlining below see the same loaded faces.
+      if (document.fonts && document.fonts.ready) {
+        try {
+          await document.fonts.ready;
+        } catch (_error) {}
+      }
+
+      const clone = document.documentElement.cloneNode(true);
+      inlineAll(document.documentElement, clone);
+
+      const removedNodes = clone.querySelectorAll("script,link[rel=\"stylesheet\"],style");
+      for (let index = 0; index < removedNodes.length; index += 1) {
+        removedNodes[index].remove();
+      }
+
+      stripExternal(clone);
+
+      // Re-embed web fonts as data-URI @font-face rules so the SVG rasterizer
+      // can resolve them — external font URLs aren't fetched during
+      // foreignObject rendering, which would otherwise force a fallback face
+      // and change text metrics.
+      const inlinedFontCss = await buildInlinedFontCss();
+      if (inlinedFontCss) {
+        const styleEl = document.createElement("style");
+        styleEl.textContent = inlinedFontCss;
+        const head = clone.querySelector("head");
+        if (head) head.appendChild(styleEl);
+        else clone.insertBefore(styleEl, clone.firstChild);
+      }
+
+      const html = new XMLSerializer().serializeToString(clone);
+      const svg =
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">` +
+        '<foreignObject width="100%" height="100%">' +
+        `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;overflow:hidden">` +
+        `<div style="position:relative;left:-${scrollX}px;top:-${scrollY}px">` +
+        html +
+        "</div></div></foreignObject></svg>";
+      const svgUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+      const image = new Image();
+      image.onload = function () {
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(image, 0, 0);
+        postResult(canvas.toDataURL("image/png"));
+      };
+      image.onerror = function () {
+        postResult(null);
+      };
+      image.src = svgUrl;
+    } catch (_error) {
+      postResult(null);
+    }
+  }
+
+  window.addEventListener("message", function (event) {
+    if (!event.data) return;
+    // Only accept messages from the direct parent frame. Blocks sibling /
+    // unrelated-window postMessage senders that could otherwise reach us.
+    if (event.source !== window.parent) return;
+
+    const trustedParentOrigin = getTrustedParentOrigin(event);
+    if (!trustedParentOrigin) return;
+    trustedTopOrigin = trustedParentOrigin;
+
+    if (event.data.type === "INLINE_EDIT_PICK") {
+      const element = resolvePickTarget(event.data.x, event.data.y);
+      postToTrustedTop({
+        type: "INLINE_EDIT_PICK_RESULT",
+        seq: event.data.seq,
+        target: element ? describePickTarget(element, event.data.fresh === true) : null,
+      });
+      return;
+    }
+
+    if (event.data.type === "INLINE_EDIT_SCROLL_START") {
+      scrollForwarding = true;
+      emitScroll();
+      return;
+    }
+
+    if (event.data.type === "INLINE_EDIT_SCROLL_STOP") {
+      scrollForwarding = false;
+      if (scrollRaf) cancelAnimationFrame(scrollRaf);
+      scrollRaf = 0;
+      return;
+    }
+
+    if (event.data.type === "INLINE_EDIT_SCROLL_BY") {
+      const { deltaX, deltaY, deltaMode } = event.data;
+      if (!scrollForwarding || !Number.isFinite(deltaX) || !Number.isFinite(deltaY)) return;
+      if (deltaMode !== 0 && deltaMode !== 1 && deltaMode !== 2) return;
+      const lineHeight =
+        parseFloat(getComputedStyle(document.documentElement).lineHeight) || DEFAULT_LINE_HEIGHT;
+      const scaleX = deltaMode === 1 ? lineHeight : deltaMode === 2 ? window.innerWidth : 1;
+      const scaleY = deltaMode === 1 ? lineHeight : deltaMode === 2 ? window.innerHeight : 1;
+      // The selection overlay receives the wheel event instead of this iframe.
+      // Instant scrolling preserves trackpad deltas even on smooth-scroll sites.
+      window.scrollBy({ left: deltaX * scaleX, top: deltaY * scaleY, behavior: "instant" });
+      emitScroll();
+      return;
+    }
+
+    if (event.data.type !== "INLINE_EDIT_CAPTURE_REQUEST") return;
+
+    handleCaptureRequest(event);
+  });
+})();
+
+</script></body>
+</html>

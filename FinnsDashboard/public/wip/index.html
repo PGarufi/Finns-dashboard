@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en-AU" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aged WIP — Finns Dashboard</title>
+<meta name="description" content="Aged work in progress for Finn Roache Lawyers by client, matter and staff, split between professional fees and on-costs.">
+<link rel="icon" type="image/png" href="../brand/favicon-32.png">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<link rel="stylesheet" href="base.css?v=8">
+<link rel="stylesheet" href="../brand/finns-brand.css?v=8">
+<link rel="stylesheet" href="wip.css?v=15">
+</head>
+<body>
+<div id="shell" hidden>
+<div class="finn-strip"><b>Finn Roache Lawyers</b><span class="dot"></span><span>Internal management reporting &middot; Confidential</span></div>
+<header class="topbar">
+  <a class="brand" href="../index.html" title="Back to Finns Dashboard">
+    <img class="finn-mark" src="../brand/monogram.png" alt="Finn Roache Lawyers" width="58" height="38">
+    <div class="brand-text">
+      <span class="eyebrow">Finns Dashboard</span>
+      <span class="brand-name">Aged WIP</span>
+    </div>
+  </a>
+  <p class="stamp" id="subtitle">Loading…</p>
+  <div class="topbar-actions">
+    <button class="btn btn-primary role-editor" id="uploadOpen" type="button">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 17V3M7 8l5-5 5 5M4 17v3h16v-3"/></svg>
+      Upload period</button>
+    <button class="btn btn-ghost" id="reconOpen" type="button">Reconciliation</button>
+    <button class="btn btn-icon" id="themeBtn" type="button" aria-label="Switch to dark mode">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    <div class="account">
+      <button class="btn btn-ghost" id="accountBtn" type="button" aria-haspopup="true" aria-expanded="false"><span id="accountName">—</span> <span class="role-chip" id="accountRole"></span></button>
+      <div class="menu" id="accountMenu" hidden>
+        <a href="../index.html">All dashboards</a>
+        <button type="button" id="signOut">Sign out</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="notice" id="notice" role="status" hidden></div>
+
+  <section class="params" aria-labelledby="paramsTitle">
+    <div class="params-head">
+      <h2 id="paramsTitle">Reporting parameters</h2>
+      <p>Every report on this page follows these settings.</p>
+    </div>
+    <div class="params-grid">
+      <label class="field"><span>Period ended</span><select id="periodFilter"></select></label>
+      <div class="field"><span>WIP type</span>
+        <div class="seg seg-fill" role="group" aria-label="WIP type" id="typeSeg">
+          <button type="button" data-type="all" class="active" aria-pressed="true">All</button>
+          <button type="button" data-type="fees" aria-pressed="false">Professional services</button>
+          <button type="button" data-type="oncost" aria-pressed="false">On-costs / disbursements</button>
+        </div>
+      </div>
+      <label class="field"><span>Aged break</span><select id="bucketFilter"></select></label>
+      <label class="field"><span>Responsible staff</span><select id="respFilter"></select></label>
+      <label class="field"><span>Staff billed by</span><select id="billedFilter"></select></label>
+      <label class="field"><span>Matter type</span><select id="mtypeFilter"></select></label>
+      <label class="field field-search"><span>Search</span><input id="search" type="search" placeholder="Client, matter number or description"></label>
+      <label class="field"><span>Matter status</span><select id="statusFilter"></select></label>
+      <button class="btn btn-ghost params-clear" id="clearFilters" type="button">Clear filters</button>
+    </div>
+    <p class="filter-note" id="filterNote" hidden></p>
+  </section>
+
+  <section class="tiles wip-tiles" id="tiles" aria-label="Key figures"></section>
+
+  <section class="grid-2">
+    <article class="card">
+      <header class="card-head"><div><h3>Ageing profile</h3><p class="sub" id="ageSub">Professional fees and on-costs by aged break</p></div></header>
+      <div class="chart-box"><canvas id="ageChart" aria-label="Ageing profile chart"></canvas></div>
+    </article>
+    <article class="card">
+      <header class="card-head"><div><h3>WIP by period ended</h3><p class="sub" id="trendSub">Total WIP at each uploaded period, by aged break</p></div></header>
+      <div class="chart-box"><canvas id="trendChart" aria-label="WIP history chart"></canvas><p class="empty-chart" id="trendEmpty" hidden></p></div>
+    </article>
+  </section>
+
+  <section class="card" id="listCard">
+    <header class="card-head">
+      <div><h3 id="listTitle">WIP by client</h3><p class="sub" id="listSub"></p></div>
+      <div class="card-actions">
+        <div class="seg" role="group" aria-label="Display by" id="viewSeg">
+          <button type="button" data-view="client" class="active" aria-pressed="true">Client</button>
+          <button type="button" data-view="bucket" aria-pressed="false">Aged breaks</button>
+          <button type="button" data-view="resp" aria-pressed="false">Responsible staff</button>
+          <button type="button" data-view="billed" aria-pressed="false">Staff billed by</button>
+          <button type="button" data-view="mtype" aria-pressed="false">Matter type</button>
+          <button type="button" data-view="trust" aria-pressed="false">Trust, no time</button>
+          <button type="button" data-view="period" aria-pressed="false">Period ended</button>
+        </div>
+        <button class="btn btn-ghost" id="exportList" type="button">Export CSV</button>
+      </div>
+    </header>
+    <div class="trust-bar" id="trustBar" hidden>
+      <span class="trust-bar-label">Matter status</span>
+      <div class="seg" role="group" aria-label="Matter status" id="statusSeg">
+        <button type="button" data-st="active" aria-pressed="false">Active</button>
+        <button type="button" data-st="archived" aria-pressed="false">Archived</button>
+        <button type="button" data-st="all" class="active" aria-pressed="true">All</button>
+      </div>
+      <span class="trust-bar-note" id="trustBarNote"></span>
+    </div>
+    <div class="table-wrap tall" id="listWrap">
+      <table class="data clickable" id="listTable"><thead></thead><tbody></tbody><tfoot></tfoot></table>
+    </div>
+    <p class="hint" id="listHint"></p>
+  </section>
+
+  <section class="card hidden" id="clientCard">
+    <header class="card-head">
+      <div><p class="eyebrow">Client</p><h3 id="clientTitle"></h3><p class="sub" id="clientSub"></p></div>
+      <div class="card-actions">
+        <div class="seg" role="group" aria-label="WIP type" data-sync="type">
+          <button type="button" data-type="all">All</button>
+          <button type="button" data-type="fees">Professional services</button>
+          <button type="button" data-type="oncost">On-costs</button>
+        </div>
+        <button class="btn btn-ghost" id="exportClient" type="button">Export CSV</button>
+        <button class="btn btn-ghost" id="clientClose" type="button">Back to list</button>
+      </div>
+    </header>
+    <div class="tiles small" id="clientTiles"></div>
+    <p class="hint">Select a matter to see the fee earners and on-costs behind it.</p>
+    <div class="table-wrap">
+      <table class="data clickable" id="matterTable"><thead></thead><tbody></tbody><tfoot></tfoot></table>
+    </div>
+  </section>
+
+  <section class="card hidden" id="matterCard">
+    <header class="card-head">
+      <div><p class="eyebrow">Matter</p><h3 id="matterTitle"></h3><p class="sub" id="matterSub"></p></div>
+      <div class="card-actions">
+        <div class="seg" role="group" aria-label="WIP type" data-sync="type">
+          <button type="button" data-type="all">All</button>
+          <button type="button" data-type="fees">Professional services</button>
+          <button type="button" data-type="oncost">On-costs</button>
+        </div>
+        <button class="btn btn-ghost" id="exportMatter" type="button">Export CSV</button>
+        <button class="btn btn-ghost" id="matterClose" type="button">Back to client</button>
+      </div>
+    </header>
+    <div class="tiles small" id="matterTiles"></div>
+    <h4 class="table-title">Staff and on-costs</h4>
+    <div class="table-wrap">
+      <table class="data" id="staffTable"><thead></thead><tbody></tbody><tfoot></tfoot></table>
+    </div>
+    <h4 class="table-title">Transactions <span class="sub" id="txnSub"></span></h4>
+    <div class="table-wrap tall">
+      <table class="data" id="txnTable"><thead></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <footer class="foot">Source: LEAP Aged WIP &amp; Disbursements Report (grouped by Staff Responsible), Aged WIP Report (grouped by Staff Billed By), Matter List and Client Details. Excludes WIP on draft invoices (fee lines not on the Aged WIP Report). Ageing is measured from each transaction date to the period-ended date. Amounts exclude GST.</footer>
+</main>
+<footer class="finn-foot"><div class="inner"><img src="../brand/logo-lockup-white.png" alt="Finn Roache Lawyers" width="69" height="44"><span><b>Finns Dashboard</b> &nbsp;&middot;&nbsp; Internal management reporting for Finn Roache Lawyers. Confidential &mdash; not for distribution.</span></div></footer>
+</div>
+
+<!-- UPLOAD -->
+<dialog id="uploadDialog" class="dlg" aria-labelledby="uploadHeading">
+  <div class="dlg-head"><div><p class="eyebrow">New period</p><h3 id="uploadHeading">Upload WIP reports</h3>
+    <p class="desc">Add the LEAP exports for one period ended. Each period is kept, so the history builds with every upload.</p></div>
+    <button class="btn btn-icon" type="button" data-close aria-label="Close">✕</button></div>
+  <div class="dlg-body">
+    <label class="drop" id="drop" for="fileInput" tabindex="0">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 17V3M7 8l5-5 5 5M4 17v3h16v-3"/></svg>
+      <b>Drop .xlsx files here or select them</b>
+      <span>Aged WIP &amp; Disbursements Report (the master) and Aged WIP Report, both required and aged at the same date. The period is the week ending (Sunday) that contains that date. The Aged WIP Report gives Staff Billed By and identifies WIP on draft invoices, which is left out. Add the Trust Trial Balance at the same date to show trust balances; it is saved straight away and can be added on its own. Administrators can also add a new Matter List or Client Details (shared with Aged Debtors).</span>
+    </label>
+    <input id="fileInput" type="file" accept=".xlsx" multiple hidden>
+    <ul class="file-list" id="fileList"></ul>
+    <p class="hint" id="leapInfo"></p>
+    <p class="form-err" id="uploadErr" hidden></p>
+  </div>
+  <div class="dlg-foot">
+    <button class="btn btn-ghost" type="button" data-close>Cancel</button>
+    <button class="btn btn-primary" id="commitBtn" type="button" disabled>Add period</button>
+  </div>
+</dialog>
+
+<!-- RECONCILIATION -->
+<dialog id="reconDialog" class="dlg wide" aria-labelledby="reconHeading">
+  <div class="dlg-head"><div><p class="eyebrow">Check</p><h3 id="reconHeading">Reconciliation and draft-invoice exclusion</h3><p class="desc" id="reconDesc"></p></div>
+    <button class="btn btn-icon" type="button" data-close aria-label="Close">✕</button></div>
+  <div class="dlg-body" id="reconBody"></div>
+  <div class="dlg-foot">
+    <button class="btn btn-ghost" id="exportRecon" type="button">Export excluded and ignored lines</button>
+    <button class="btn btn-danger role-admin" id="deletePeriod" type="button">Delete this period</button>
+    <button class="btn btn-primary" type="button" data-close>Close</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" hidden></div>
+<script src="../shell.js?v=1791760000" data-root="../"></script>
+<script src="../vendor/chart.umd.min.js"></script>
+<script src="parser.js?v=20"></script>
+<script src="app.js?v=19"></script>
+</body>
+</html>

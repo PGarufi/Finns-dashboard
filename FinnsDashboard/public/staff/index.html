@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Staff Performance — Finns Dashboard</title>
+<meta name="robots" content="noindex, nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<link rel="icon" type="image/png" href="../brand/favicon-32.png">
+<link rel="stylesheet" href="styles.css?v=1791698175">
+<link rel="stylesheet" href="../brand/finns-brand.css?v=1791760000">
+<script src="vendor/xlsx.full.min.js"></script>
+<script src="parser.js?v=1791698175"></script>
+</head>
+<body>
+<div id="shell" hidden>
+<div class="finn-strip"><b>Finn Roache Lawyers</b><span class="dot"></span><span>Internal management reporting &middot; Confidential</span></div>
+<header class="topbar">
+  <a class="brand" href="../index.html" title="Back to Finns Dashboard">
+    <img class="finn-mark" src="../brand/monogram.png" alt="Finn Roache Lawyers" width="58" height="38">
+    <div>
+      <p class="eyebrow-sm">Finns Dashboard</p>
+      <h1>Billable Staff Performance</h1>
+      <p class="sub">Finn Roache Lawyers &middot; Financial year July&ndash;June</p>
+    </div>
+  </a>
+  <nav class="tabs" id="viewTabs">
+    <button class="tab active" data-view="dashboard">Dashboard</button>
+    <button class="tab" data-view="staff">Staff detail</button>
+    <button class="tab" data-view="locations">Locations</button>
+    <button class="tab" data-view="data">Data &amp; uploads</button>
+    <button class="tab" data-view="method">Method</button>
+  </nav>
+  <div class="session">
+    <span class="who"><span id="whoami"></span> <span class="role-chip" id="roleChip"></span></span>
+    <a class="btn ghost mini" href="../index.html">All dashboards</a>
+    <button class="btn ghost mini" id="signOutBtn">Sign out</button>
+  </div>
+</header>
+
+<div id="notice" class="warn" hidden></div>
+<section class="controls">
+  <div class="ctl">
+    <label for="fySel">Financial year</label>
+    <select id="fySel"></select>
+  </div>
+  <div class="ctl">
+    <label for="basisSel">Reporting basis</label>
+    <select id="basisSel">
+      <option value="ytd">Year to date</option>
+      <option value="quarter">Quarter</option>
+      <option value="month">Month</option>
+    </select>
+  </div>
+  <div class="ctl" id="periodWrap" hidden>
+    <label for="periodSel">Period</label>
+    <select id="periodSel"></select>
+  </div>
+  <div class="ctl">
+    <label for="locSel">Location</label>
+    <select id="locSel"><option value="">All locations</option></select>
+  </div>
+  <div class="ctl">
+    <label for="multInput">Target multiple</label>
+    <input id="multInput" type="number" step="0.1" min="0" value="3.5">
+  </div>
+  <div class="ctl">
+    <label for="greenInput">Green at %</label>
+    <input id="greenInput" type="number" step="1" min="0" value="100">
+  </div>
+  <div class="ctl">
+    <label for="amberInput">Amber at %</label>
+    <input id="amberInput" type="number" step="1" min="0" value="85">
+  </div>
+  <div class="ctl grow right">
+    <button id="exportBtn" class="btn">Export current view (CSV)</button>
+  </div>
+</section>
+
+<main>
+  <!-- DASHBOARD -->
+  <div class="view" id="view-dashboard">
+    <div class="kpis" id="kpis"></div>
+    <div class="panel">
+      <div class="panel-head">
+        <h2 id="tableTitle">Billable staff performance</h2>
+        <div class="legend">
+          <span class="sortbar">
+            <label for="sortSel">Sort by</label>
+            <select id="sortSel">
+              <option value="loc">Location (grouped)</option>
+              <option value="name">Staff member</option>
+              <option value="rec">Receipted</option>
+              <option value="recVar">Receipt variance $</option>
+              <option value="recPeriodPct">% of receipt target</option>
+              <option value="inv">Invoiced</option>
+              <option value="invVar">Invoice variance $</option>
+              <option value="invPeriodPct">% of invoice target</option>
+            </select>
+            <button id="sortDirBtn" class="btn mini ghost" type="button" title="Reverse the sort order">High to low</button>
+          </span>
+          <button id="resetSortBtn" class="btn mini ghost" type="button" hidden>Reset to location view</button>
+          <span class="chip g">On / above target</span>
+          <span class="chip a">Close to target</span>
+          <span class="chip r">Below target</span>
+        </div>
+      </div>
+      <div class="scroll">
+        <table class="grid" id="mainTable"></table>
+      </div>
+      <p class="note" id="tableNote"></p>
+    </div>
+    <div class="two">
+      <div class="panel">
+        <div class="panel-head">
+          <h2 id="barsRecTitle">Receipted vs target</h2>
+          <span class="seg" role="group" aria-label="Chart measure">
+            <button type="button" class="segbtn on" data-mode="pct">%</button>
+            <button type="button" class="segbtn" data-mode="dollar">$</button>
+          </span>
+        </div>
+        <div id="barsReceipted" class="bars"></div>
+        <p class="note" id="barsRecNote"></p>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <h2 id="barsInvTitle">Invoiced vs target</h2>
+          <span class="seg" role="group" aria-label="Chart measure">
+            <button type="button" class="segbtn on" data-mode="pct">%</button>
+            <button type="button" class="segbtn" data-mode="dollar">$</button>
+          </span>
+        </div>
+        <div id="barsInvoiced" class="bars"></div>
+        <p class="note" id="barsInvNote"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- STAFF DETAIL -->
+  <div class="view" id="view-staff" hidden>
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Staff drill-down</h2>
+        <div class="ctl inline">
+          <label for="staffSel">Staff member</label>
+          <select id="staffSel"></select>
+        </div>
+      </div>
+      <div id="staffDetail"></div>
+    </div>
+  </div>
+
+  <!-- LOCATIONS -->
+  <div class="view" id="view-locations" hidden>
+    <div class="panel">
+      <h2>Performance by location</h2>
+      <div class="scroll"><table class="grid" id="locTable"></table></div>
+    </div>
+    <div class="panel">
+      <h2>Location achievement &mdash; % of period target</h2>
+      <div id="barsLoc" class="bars"></div>
+    </div>
+  </div>
+
+  <!-- DATA -->
+  <div class="view" id="view-data" hidden>
+    <div class="panel">
+      <h2>Upload monthly spreadsheets</h2>
+      <p class="note">Drop in any combination of Pay Categories, Staff Receipted Funds and Staff Invoiced Funds exports. The reporting month is read from each report's own date range, so files can be loaded in any order, and re-uploading a month replaces that month's figures. Uploads are saved to the dashboard's shared store, so everyone signed in sees them &mdash; and the newest month becomes the reporting period automatically.</p>
+      <p class="note role-viewer-only">Your access to this dashboard is read-only. Ask an administrator for Editor access to upload spreadsheets.</p>
+      <div id="drop" class="drop role-editor">
+        <input type="file" id="fileInput" multiple accept=".xlsx,.xls">
+        <p><strong>Drag files here</strong> or <label for="fileInput" class="link">choose files</label></p>
+      </div>
+      <div id="uploadLog" class="log"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Loaded periods</h2><div class="btnrow">
+        <button id="refreshBtn" class="btn ghost">Refresh from server</button>
+        <button id="backupBtn" class="btn ghost">Download data backup</button>
+        <label class="btn ghost role-admin" for="restoreInput" tabindex="0">Restore from backup</label>
+        <input type="file" id="restoreInput" accept=".json,application/json" hidden>
+      </div></div>
+      <p class="note" id="storeNote"></p>
+      <div class="scroll"><table class="grid" id="invTable"></table></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Unmatched fee earners</h2></div>
+      <p class="note">Names appearing in the receipts or invoiced reports with no matching payroll record in the Pay Categories export &mdash; typically principals, consultants or contractors who are not paid through payroll. They carry no salary-based target, so they sit outside the billable-staff table. Map one to a payroll name if the reports use a different spelling.</p>
+      <div class="scroll"><table class="grid" id="unmatchedTable"></table></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Names matched by best fit</h2></div>
+      <p class="note">Where a name in the receipts or invoiced reports is not spelled exactly as it appears in payroll, it is credited to the payroll record shown here. A shared surname alone is never enough &mdash; the given name must also agree, so Daniel Georges is not credited to Martin Georges. Check this list and use the mapping above if anything is credited to the wrong person.</p>
+      <div class="scroll"><table class="grid" id="fuzzyTable"></table></div>
+    </div>
+  </div>
+
+  <!-- METHOD -->
+  <div class="view" id="view-method" hidden>
+    <div class="panel method">
+      <h2>How every number is calculated</h2>
+      <h3>Billable staff</h3>
+      <p>Every staff member in the Pay Categories export is measured, at every office. A person is <strong>listed</strong> in the dashboard only where receipts or invoices are recorded against them somewhere in the selected financial year; anyone with no billings recorded all year (administration, support and other non-fee-earning roles) is calculated but not displayed, so the table stays a list of fee earners. Because the test looks across the whole financial year, a fee earner stays in the table for a quiet month rather than disappearing and reappearing.</p>
+      <p>Totals, subtotals and targets are built from the rows on screen, so the firm and location figures cover the fee earners listed and not the salaries of staff with no billings.</p>
+      <h3>Locations</h3>
+      <p>Offices are reported as one place. The payroll entity prefix is dropped, so <code>FIN - Sydney</code> and <code>SCS - Sydney</code> are consolidated into <strong>Sydney</strong> &mdash; including for a person paid by both entities in the same office, whose pay, receipts and invoices combine into a single Sydney row.</p>
+      <h3>Staff who change office</h3>
+      <p>Each month is reported under the location the payroll recorded it at. Where a person moved between offices during the year they appear under <strong>each</strong> office, marked &ddagger;, carrying only the months that office paid them &mdash; so pay, targets, receipts and invoices for those months sit with that office. Where a single month spans two locations, that month is apportioned between them in proportion to the pay recorded at each. Annualised salary and targets are calculated separately for each location from the months it paid, so the location figures add back to the person&rsquo;s combined total.</p>
+      <p>The <strong>Staff detail</strong> tab always combines every location for the person selected and shows the split between offices.</p>
+      <h3>Pay + super</h3>
+      <p>For each month, <strong>Amount</strong> plus <strong>SG Super</strong> from every pay category row for that person, excluding any pay category whose name contains &ldquo;Bonus&rdquo;.</p>
+      <h3>Estimated annual salary + super</h3>
+      <p>Total pay + super across the financial year to date, divided by the number of loaded months in which that person was actually paid, multiplied by 12. Counting only paid months means a starter, leaver or someone on unpaid leave is annualised at their true rate rather than being diluted by months they were not employed.</p>
+      <h3>Targets</h3>
+      <p>Annual receipted target and annual invoiced target are each the target multiple (default 3.5) &times; estimated annual salary + super. A period target is the annual target &times; the months in the period in which the person was paid &div; 12 &mdash; so a single month is one twelfth, a full quarter one quarter, and year to date scales with the months actually loaded.</p>
+      <h3>Receipted and invoiced</h3>
+      <p>The staff-level <strong>Contribution</strong> total from the Staff Receipted Funds and Staff Invoiced Funds reports. Contribution is the share of each invoice or receipt attributed to that fee earner, so staff totals add to the firm total without double counting.</p>
+      <h3>Traffic lights</h3>
+      <p>Green at or above the green threshold of the period target, amber at or above the amber threshold, otherwise red. Both thresholds are adjustable in the control bar.</p>
+      <p>The two annual-target columns are an exception: they display year-to-date receipts or invoices as a percentage of the full-year target, but the traffic light grades them against the pro-rata target for the months paid so far (annual target &times; months paid &divide; 12). A fee earner tracking exactly to target therefore shows green from the first month, even though the annual percentage is still small. Hover a cell to see the pro-rata percentage behind the colour.</p>
+      <h3>Where the data lives</h3>
+      <p>Uploaded reports are held in a single shared store behind the sign-in, not in each person's browser. Anyone signed in sees the same periods, and an upload by one person immediately becomes the firm-wide view; open dashboards pick the change up within a minute and jump to the newest month. Removing a period removes it for everyone.</p>
+      <h3>Things to keep in mind</h3>
+      <ul>
+        <li>Annualised salary is an estimate built from actual pay. A month containing five weekly pay runs, back pay or a leave cash-out will lift it; a part-month start or finish within a paid month will lower it. Check the Staff detail page for anyone whose annualised figure looks wrong before acting on their percentage.</li>
+        <li>Receipts and invoices are matched to payroll on the full name first, then on surname <em>and</em> a compatible given name &mdash; identical, a shortening such as Greg for Gregory, or an initial. A shared surname alone is never enough, so two unrelated people with the same surname are not merged. A payroll name contained within the reported one also matches, which covers middle or preferred names and a maiden name added after marriage. Every name matched on anything other than an exact spelling is listed on the Data page for checking, and any name that cannot be matched is listed there rather than silently dropped.</li>
+        <li>A fee earner is identified by having receipts or invoices recorded against them, not by their location code, so someone whose billings are all credited to a supervising partner will not appear. Rows marked with a dagger were paid in only some of the loaded months; rows marked with a double dagger were recorded at more than one location.</li>
+        <li>Recently started fee earners will always look red. Work in progress builds before it is invoiced, and invoices are receipted later again, so a full target is only a fair test once someone has been billing for a full cycle.</li>
+      </ul>
+    </div>
+  </div>
+</main>
+<footer class="finn-foot"><div class="inner"><img src="../brand/logo-lockup-white.png" alt="Finn Roache Lawyers" width="69" height="44"><span id="footNote"></span></div></footer>
+</div>
+<div class="toast" id="toast" hidden></div>
+<script src="../shell.js?v=1791760000" data-root="../"></script>
+<script src="app.js?v=1791698175"></script>
+<script data-pplx-inline-edit>
+(function () {
+  if (window === window.top) return;
+
+  const allowedParentOrigins = ["https://www.perplexity.ai","https://perplexity.ai","https://testing.perplexity.ai","https://staging.perplexity.ai","https://*.preview.i.perplexity.ai","http://perplexity.localhost","http://localhost:1420","http://127.0.0.1:1420","http://localhost:3000","http://127.0.0.1:3000","http://localhost:5173","http://127.0.0.1:5173"];
+  const MAX_FONT_BYTES = 500 * 1024;
+  const MAX_TOTAL_FONT_BYTES = 2 * 1024 * 1024;
+  const DEFAULT_LINE_HEIGHT = 16;
+  let scrollForwarding = false;
+  let scrollRaf = 0;
+  let trustedTopOrigin = null;
+
+  // Allow entries like "https://*.preview.i.perplexity.ai" — the wildcard
+  // matches a single DNS label (no dots), so "https://*.foo" cannot stretch
+  // across multiple labels.
+  function matchesAllowedOrigin(origin) {
+    if (!origin) return false;
+    for (const entry of allowedParentOrigins) {
+      if (!entry.includes("*")) {
+        if (entry === origin) return true;
+        continue;
+      }
+      const pattern = new RegExp(
+        "^" +
+          entry.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^.]+") +
+          "$",
+      );
+      if (pattern.test(origin)) return true;
+    }
+    return false;
+  }
+
+  // Trust decision: when the sender is same-origin-visible (event.origin is a
+  // real origin like https://www.perplexity.ai) we trust event.origin directly.
+  // When event.origin is "null" (opaque broker srcdoc), we fall back to the
+  // broker's stamped `parentOrigin` to identify the top window. The fallback
+  // is claim-only — we rely on the browser's native `targetOrigin` enforcement
+  // on the response path (see postToTrustedTop) to ensure replies can't be
+  // delivered to anyone but the actual top window of that claimed origin.
+  function getTrustedParentOrigin(event) {
+    const forwardedParentOrigin =
+      typeof event.data.parentOrigin === "string" ? event.data.parentOrigin : null;
+    const parentOrigin = event.origin === "null" ? forwardedParentOrigin : event.origin;
+    return matchesAllowedOrigin(parentOrigin) ? parentOrigin : null;
+  }
+
+  // All responses go to window.top with targetOrigin = the allowlisted origin.
+  // An attacker that iframes us inside their own null-origin broker can claim
+  // any parentOrigin they like, but the browser will drop the reply whenever
+  // the real top's origin doesn't match — so the screenshot never leaves.
+  function postToTrustedTop(message) {
+    if (!trustedTopOrigin) return;
+    try {
+      window.top.postMessage(message, trustedTopOrigin);
+    } catch (_error) {}
+  }
+
+  const PICK_CAPABILITIES = ["pick"];
+  const PICK_CHAIN_LENGTH = 4;
+  const PICK_MAX_TEXT_CHARS = 120;
+  const PICK_MAX_HTML_CHARS = 300;
+
+  function truncate(value, maxChars) {
+    return value.length > maxChars ? value.slice(0, maxChars - 1) + "…" : value;
+  }
+
+  function isPickableElement(element) {
+    return (
+      element instanceof Element &&
+      element !== document.documentElement &&
+      element !== document.body
+    );
+  }
+
+  function resolvePickTarget(x, y) {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+    const element = document.elementFromPoint(x, y);
+    return isPickableElement(element) ? element.closest("svg") || element : null;
+  }
+
+  function pickLabel(element) {
+    if (element.id) return element.localName + "#" + element.id;
+    return [element.localName].concat(Array.from(element.classList).slice(0, 2)).join(".");
+  }
+
+  // Only attributes that help find the element in source. data-* values and URL
+  // query strings or fragments can carry tokens.
+  const PICK_ATTRIBUTES = new Set([
+    "id",
+    "class",
+    "name",
+    "type",
+    "role",
+    "alt",
+    "aria-label",
+    "href",
+    "src",
+  ]);
+
+  function pickAttributeValue(attribute) {
+    return attribute.name === "href" || attribute.name === "src"
+      ? attribute.value.split(/[?#]/)[0]
+      : attribute.value;
+  }
+
+  function describePickElement(element) {
+    const chain = [];
+    for (
+      let current = element;
+      isPickableElement(current) && chain.length < PICK_CHAIN_LENGTH;
+      current = current.parentElement
+    ) {
+      chain.unshift(current);
+    }
+    const attributes = Array.from(element.attributes)
+      .filter((attribute) => PICK_ATTRIBUTES.has(attribute.name))
+      .map((attribute) => ` ${attribute.name}="${pickAttributeValue(attribute).replace(/"/g, "&quot;")}"`)
+      .join("");
+    const text = (element.innerText || element.textContent || "").replace(/\s+/g, " ").trim();
+    return {
+      chain: chain.map(pickLabel),
+      html: truncate(`<${element.localName}${attributes}>`, PICK_MAX_HTML_CHARS),
+      text: text ? truncate(text, PICK_MAX_TEXT_CHARS) : undefined,
+    };
+  }
+
+  // Hover asks once per frame, and innerText on a large section forces layout,
+  // so only the rect is re-read while the pointer stays on the same element.
+  // Clicks ask for fresh details since the page may have changed the element.
+  let lastPick = null;
+
+  function describePickTarget(element, fresh) {
+    if (fresh || lastPick?.element !== element) {
+      lastPick = { element, details: describePickElement(element) };
+    }
+    const rect = element.getBoundingClientRect();
+    return {
+      rect: { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
+      ...lastPick.details,
+    };
+  }
+
+  function inlineAll(original, clone) {
+    if (original.nodeType !== 1 || clone.nodeType !== 1) return;
+
+    try {
+      const computedStyle = getComputedStyle(original);
+      // cssText on a computed style is the serialized declaration in modern
+      // Chromium/Safari — a single read beats enumerating ~400 longhand
+      // properties. Firefox returns "" here, so we fall back on empty.
+      const serialized = computedStyle.cssText;
+      if (serialized) {
+        clone.style.cssText = serialized;
+      } else {
+        const parts = new Array(computedStyle.length);
+        for (let index = 0; index < computedStyle.length; index += 1) {
+          const property = computedStyle[index];
+          parts[index] = `${property}:${computedStyle.getPropertyValue(property)};`;
+        }
+        clone.style.cssText = parts.join("");
+      }
+    } catch (_error) {}
+
+    const originalChildren = original.children;
+    const clonedChildren = clone.children;
+    for (
+      let index = 0;
+      index < originalChildren.length && index < clonedChildren.length;
+      index += 1
+    ) {
+      inlineAll(originalChildren[index], clonedChildren[index]);
+    }
+  }
+
+  function extractFontUrl(srcValue) {
+    const matches = [
+      ...srcValue.matchAll(
+        /url\(["']?([^"')]+)["']?\)(?:\s*format\(["']?([^"')]+)["']?\))?/gi,
+      ),
+    ];
+    if (matches.length === 0) return null;
+    const woff2 = matches.find((m) => m[2] && m[2].toLowerCase().includes("woff2"));
+    if (woff2) return woff2[1];
+    const woff = matches.find((m) => m[2] && m[2].toLowerCase().includes("woff"));
+    if (woff) return woff[1];
+    return matches[0][1];
+  }
+
+  // Cache resolved font URL -> data URI across captures. Fonts on a page
+  // essentially never change, and a batch run emits multiple captures back to
+  // back — without this we'd refetch + re-base64 every time.
+  const fontDataUriCache = new Map();
+  const SRC_DECLARATION_RE = /src\s*:\s*[^;}]+/i;
+
+  async function fetchAsDataUri(url) {
+    if (fontDataUriCache.has(url)) return fontDataUriCache.get(url);
+    let dataUri = null;
+    try {
+      const response = await fetch(url, { mode: "cors", credentials: "omit" });
+      if (response.ok) {
+        const blob = await response.blob();
+        if (blob.size <= MAX_FONT_BYTES) {
+          dataUri = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () =>
+              resolve(typeof reader.result === "string" ? reader.result : null);
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(blob);
+          });
+        }
+      }
+    } catch (_error) {
+      dataUri = null;
+    }
+    fontDataUriCache.set(url, dataUri);
+    return dataUri;
+  }
+
+  function collectFontFaceRuleTexts() {
+    const rules = [];
+    for (const sheet of document.styleSheets) {
+      let cssRules;
+      try {
+        cssRules = sheet.cssRules;
+      } catch (_error) {
+        continue;
+      }
+      if (!cssRules) continue;
+      for (const rule of cssRules) {
+        const cssText = rule.cssText || "";
+        if (cssText.startsWith("@font-face")) rules.push(cssText);
+      }
+    }
+    return rules;
+  }
+
+  async function buildInlinedFontCss() {
+    const ruleTexts = collectFontFaceRuleTexts();
+    if (ruleTexts.length === 0) return null;
+
+    const resolved = ruleTexts.map((cssText) => {
+      if (!SRC_DECLARATION_RE.test(cssText)) return null;
+      const srcMatch = cssText.match(/src\s*:\s*([^;}]+)[;}]/i);
+      if (!srcMatch) return null;
+      const url = extractFontUrl(srcMatch[1]);
+      if (!url) return null;
+      try {
+        return { cssText, url: new URL(url, document.baseURI).href };
+      } catch (_error) {
+        return null;
+      }
+    });
+
+    const dataUris = await Promise.all(
+      resolved.map((entry) => (entry ? fetchAsDataUri(entry.url) : Promise.resolve(null))),
+    );
+
+    const inlined = [];
+    let totalBytes = 0;
+    for (let index = 0; index < resolved.length; index += 1) {
+      const entry = resolved[index];
+      const dataUri = dataUris[index];
+      if (!entry || !dataUri) continue;
+      const approxBytes = dataUri.length * 0.75;
+      if (totalBytes + approxBytes > MAX_TOTAL_FONT_BYTES) break;
+      totalBytes += approxBytes;
+      inlined.push(entry.cssText.replace(SRC_DECLARATION_RE, `src: url("${dataUri}")`));
+    }
+    return inlined.length > 0 ? inlined.join("\n") : null;
+  }
+
+  function stripExternal(clone) {
+    const images = clone.querySelectorAll("img");
+    for (let index = 0; index < images.length; index += 1) {
+      const src = images[index].getAttribute("src");
+      if (src && !src.startsWith("data:")) images[index].removeAttribute("src");
+    }
+
+    const elements = clone.querySelectorAll("*");
+    for (let index = 0; index < elements.length; index += 1) {
+      const style = elements[index].style.cssText;
+      if (style && style.includes("url(")) {
+        elements[index].style.cssText = style.replace(
+          /url\(["']?(?!data:)[^)"']*["']?\)/gi,
+          "none",
+        );
+      }
+    }
+  }
+
+  function emitScroll() {
+    scrollRaf = 0;
+    if (!scrollForwarding) return;
+    postToTrustedTop({
+      type: "INLINE_EDIT_SCROLL",
+      scrollX: window.scrollX,
+      scrollY: window.scrollY,
+      capabilities: PICK_CAPABILITIES,
+    });
+  }
+
+  window.addEventListener(
+    "scroll",
+    function () {
+      if (!scrollForwarding || scrollRaf) return;
+      scrollRaf = requestAnimationFrame(emitScroll);
+    },
+    { passive: true, capture: true },
+  );
+
+  async function handleCaptureRequest(event) {
+    const requestId = event.data.requestId;
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    function postResult(dataUrl) {
+      postToTrustedTop({
+        type: "INLINE_EDIT_SCREENSHOT_RESULT",
+        requestId,
+        dataUrl,
+        scrollX,
+        scrollY,
+      });
+    }
+
+    try {
+      // Wait for any pending web fonts to resolve so both inline metrics and
+      // the @font-face inlining below see the same loaded faces.
+      if (document.fonts && document.fonts.ready) {
+        try {
+          await document.fonts.ready;
+        } catch (_error) {}
+      }
+
+      const clone = document.documentElement.cloneNode(true);
+      inlineAll(document.documentElement, clone);
+
+      const removedNodes = clone.querySelectorAll("script,link[rel=\"stylesheet\"],style");
+      for (let index = 0; index < removedNodes.length; index += 1) {
+        removedNodes[index].remove();
+      }
+
+      stripExternal(clone);
+
+      // Re-embed web fonts as data-URI @font-face rules so the SVG rasterizer
+      // can resolve them — external font URLs aren't fetched during
+      // foreignObject rendering, which would otherwise force a fallback face
+      // and change text metrics.
+      const inlinedFontCss = await buildInlinedFontCss();
+      if (inlinedFontCss) {
+        const styleEl = document.createElement("style");
+        styleEl.textContent = inlinedFontCss;
+        const head = clone.querySelector("head");
+        if (head) head.appendChild(styleEl);
+        else clone.insertBefore(styleEl, clone.firstChild);
+      }
+
+      const html = new XMLSerializer().serializeToString(clone);
+      const svg =
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">` +
+        '<foreignObject width="100%" height="100%">' +
+        `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;overflow:hidden">` +
+        `<div style="position:relative;left:-${scrollX}px;top:-${scrollY}px">` +
+        html +
+        "</div></div></foreignObject></svg>";
+      const svgUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+      const image = new Image();
+      image.onload = function () {
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(image, 0, 0);
+        postResult(canvas.toDataURL("image/png"));
+      };
+      image.onerror = function () {
+        postResult(null);
+      };
+      image.src = svgUrl;
+    } catch (_error) {
+      postResult(null);
+    }
+  }
+
+  window.addEventListener("message", function (event) {
+    if (!event.data) return;
+    // Only accept messages from the direct parent frame. Blocks sibling /
+    // unrelated-window postMessage senders that could otherwise reach us.
+    if (event.source !== window.parent) return;
+
+    const trustedParentOrigin = getTrustedParentOrigin(event);
+    if (!trustedParentOrigin) return;
+    trustedTopOrigin = trustedParentOrigin;
+
+    if (event.data.type === "INLINE_EDIT_PICK") {
+      const element = resolvePickTarget(event.data.x, event.data.y);
+      postToTrustedTop({
+        type: "INLINE_EDIT_PICK_RESULT",
+        seq: event.data.seq,
+        target: element ? describePickTarget(element, event.data.fresh === true) : null,
+      });
+      return;
+    }
+
+    if (event.data.type === "INLINE_EDIT_SCROLL_START") {
+      scrollForwarding = true;
+      emitScroll();
+      return;
+    }
+
+    if (event.data.type === "INLINE_EDIT_SCROLL_STOP") {
+      scrollForwarding = false;
+      if (scrollRaf) cancelAnimationFrame(scrollRaf);
+      scrollRaf = 0;
+      return;
+    }
+
+    if (event.data.type === "INLINE_EDIT_SCROLL_BY") {
+      const { deltaX, deltaY, deltaMode } = event.data;
+      if (!scrollForwarding || !Number.isFinite(deltaX) || !Number.isFinite(deltaY)) return;
+      if (deltaMode !== 0 && deltaMode !== 1 && deltaMode !== 2) return;
+      const lineHeight =
+        parseFloat(getComputedStyle(document.documentElement).lineHeight) || DEFAULT_LINE_HEIGHT;
+      const scaleX = deltaMode === 1 ? lineHeight : deltaMode === 2 ? window.innerWidth : 1;
+      const scaleY = deltaMode === 1 ? lineHeight : deltaMode === 2 ? window.innerHeight : 1;
+      // The selection overlay receives the wheel event instead of this iframe.
+      // Instant scrolling preserves trackpad deltas even on smooth-scroll sites.
+      window.scrollBy({ left: deltaX * scaleX, top: deltaY * scaleY, behavior: "instant" });
+      emitScroll();
+      return;
+    }
+
+    if (event.data.type !== "INLINE_EDIT_CAPTURE_REQUEST") return;
+
+    handleCaptureRequest(event);
+  });
+})();
+
+</script></body>
+</html>
